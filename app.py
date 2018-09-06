@@ -73,6 +73,39 @@ def authorized(resp):
 def get_access_token():
   return session.get('access_token')
 
+@app.route('/logout')
+def logout():
+  # requests.post('https://accounts.google.com/o/oauth2/revoke',
+  #   params={'token': credentials.token},
+  #   headers = {'content-type': 'application/x-www-form-urlencoded'})
+
+  access_token = session.get('access_token')
+  if access_token is None:
+    return redirect(url_for('login'))
+
+  access_token = access_token[0]
+  from urllib2 import Request, urlopen, URLError
+
+  headers = {
+    'content-type': 'application/x-www-form-urlencoded'
+  }
+  params = {
+    'token': access_token
+  }
+
+  req = Request('https://www.googleapis.com/oauth2/v1/userinfo', params, headers)
+
+  try:
+    res = urlopen(req)
+  except URLError as e:
+    if e.code == 401:
+      # Unauthorized - bad token
+      session.pop('access_token', None)
+      return redirect(url_for('login'))
+    return res.read()
+
+  return res.read()
+
 def main():
   app.run()
 
